@@ -13,13 +13,15 @@ from langchain_core.output_parsers import StrOutputParser
 
 from langchain_core.prompts import PromptTemplate
 
-from transformers import pipeline
-
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
 import streamlit as st
 import logging
+from dotenv import load_dotenv
+import os
 
-client = InferenceClient(token="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")
+load_dotenv()
+token = os.getenv("HUGGINGFACEHUB_ACCESS_TOKEN")
+client = InferenceClient(token=token)
 
 st.set_page_config(page_title="AskTube",layout="centered")
 st.title("YouTube video Q&A Chatbot")
@@ -37,7 +39,6 @@ logging.basicConfig(
 )
 
 
-#video_id = "Gfr50f6ZBvo" # only the ID, not full URL
 try:
     # If you don’t care which language, this returns the “best” one
     transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=["en"])
@@ -48,7 +49,6 @@ try:
     logging.info("Transcript is successfully fetched by api.")
 
 except TranscriptsDisabled:
-    #print("No captions available for this video.")
     logging.error("No captions available for this video.")
 
 #TextSplitter
@@ -61,13 +61,11 @@ vectore_store = FAISS.from_documents(chunks, embeddings)
 logging.info("chunks has been successfully stored in vector database.")
 
 logging.info(f"{vectore_store.index_to_docstore_id}")
-#logging.info(f"{vectore_store.get_by_ids(['3f507d39-ae93-4fac-88bc-2d547f7642fa'])}")
 logging.info(f"length of chunks: {len(chunks)}")
 
 
 retriever = vectore_store.as_retriever(search_type="similarity", search_kwargs={"k": 4})
 retriever
-#logging.info(f"{retriever.invoke('explain deepmind')}")
 logging.info("Retriever is working good.")
 
 
@@ -90,9 +88,6 @@ def augmentation_pipeline(question):
   final_prompt = prompt.invoke({"context": context_text, "question": question})
   return final_prompt
 
-#question = "is the topic of nuclear fusion discussed in this video? if yes then what was discussed"
-#final_prompt = augmentation_pipeline(question)
-#logging.info(f"{final_prompt}")
 
 """
 pipe = pipeline("text2text-generation", model="google/flan-t5-small", device=-1) 
@@ -105,8 +100,6 @@ llm = HuggingFaceEndpoint(
 )
 """
 llm = Ollama(model= "mistral")
-#ans = llm.invoke(final_prompt)
-#logging.info(f"{ans}")
 
 
 def format_docs(retrieved_docs):
@@ -117,12 +110,9 @@ parallel_chain = RunnableParallel({
     'context': retriever | RunnableLambda(format_docs),
     'question': RunnablePassthrough()
 })
-#logging.info(f"{parallel_chain.invoke('who is Demis')}")
-#logging.info("Parallel chains are working.")
 
 parser = StrOutputParser()
 main_chain = parallel_chain | prompt | llm | parser
-#logging.info(f"{main_chain.invoke('Can you summarize the video')}")
 
 if st.button("Submit query"):
    if not video_id or not query:
