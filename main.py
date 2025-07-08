@@ -14,6 +14,8 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
+from youtube_transcript_api._errors import NoTranscriptFound, TranscriptsDisabled, VideoUnavailable
+
 import streamlit as st
 import logging
 from dotenv import load_dotenv
@@ -30,6 +32,14 @@ st.markdown("Ask any questions about your given you tube video.")
 video_id = st.text_input("Enter YouTube Video ID",placeholder="e.g. dQe4w9WgXcq")
 query = st.text_input("Give me your query",placeholder="e.g. what is this video about")
 
+language = st.selectbox(
+    "Select transcript language:",
+    options=[("English", "en"), ("Hindi", "hi"), ("Spanish", "es"), ("French", "fr"), ("German", "de")],
+    format_func=lambda x: x[0],
+    index=0
+)
+selected_language_code = language[1]
+
 # Basic configuration
 logging.basicConfig(
     level=logging.INFO,  # Levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
@@ -41,12 +51,21 @@ logging.basicConfig(
 
 try:
     # If you don’t care which language, this returns the “best” one
-    transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=["en"])
+    transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=selected_language_code)
 
     # Flatten it to plain text
     transcript = " ".join(chunk["text"] for chunk in transcript_list)
     logging.info(f"Transcript : {transcript}")
     logging.info("Transcript is successfully fetched by api.")
+
+except NoTranscriptFound:
+    # fallback: try auto-generated if manual not found
+    transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=[selected_language_code], preserve_formatting=True)
+    # Flatten it to plain text
+    transcript = " ".join(chunk["text"] for chunk in transcript_list)
+    logging.info(f"Transcript : {transcript}")
+    logging.info("Transcript is successfully fetched by api.")
+
 
 except TranscriptsDisabled:
     logging.error("No captions available for this video.")
@@ -89,7 +108,7 @@ def augmentation_pipeline(question):
   return final_prompt
 
 
-"""
+'''
 pipe = pipeline("text2text-generation", model="google/flan-t5-small", device=-1) 
 llm = HuggingFacePipeline(pipeline=pipe)
 
@@ -98,7 +117,7 @@ llm = HuggingFaceEndpoint(
    task="text2text-generation",
    client = client
 )
-"""
+'''
 llm = Ollama(model= "mistral")
 
 
