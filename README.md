@@ -4,7 +4,7 @@ AskChat is an AI-powered chatbot built with **Streamlit**, **LangChain**, **FAIS
 
 It fetches the transcript of the video, semantically searches for relevant context, and generates intelligent answers using powerful language models.
 
-![AskChat Screenshot](./a51a8402-cbf4-447b-ab72-51f275ca5d79.png)
+![App Screenshot](assets\Screenshot 2025-07-20 170848.png)
 
 ---
 
