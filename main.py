@@ -16,12 +16,12 @@ from langchain_core.runnables import RunnableParallel, RunnablePassthrough, Runn
 # Load .env token
 load_dotenv()
 log = CustomLogger("main_py.log")
-token = os.getenv("HUGGINGFACEHUB_ACCESS_TOKEN")
+token = os.getenv("HUGGINGFACEHUB_TOKEN")
 
 # Initialize Hugging Face Inference Client
 client = InferenceClient(
-    provider="featherless-ai",  # or novita, gradientai, etc.
-    token=token,
+    model="meta-llama/Llama-3.1-8B-Instruct", # or novita, gradientai, etc.
+    
 )
 
 
@@ -97,7 +97,7 @@ def build_prompt(query):
 # Chat model call using Hugging Face streaming client
 def chat_with_llm(full_prompt: str):
     stream = client.chat.completions.create(
-        model="meta-llama/Llama-3.1-8B-Instruct",  # or other supported model
+         # or other supported model
         messages=[
             {"role": "user", "content": full_prompt}
         ],
