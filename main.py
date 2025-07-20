@@ -1,6 +1,6 @@
 # app.py
 import os
-import logging
+from custom_logger import CustomLogger
 import streamlit as st
 from dotenv import load_dotenv
 
@@ -15,6 +15,7 @@ from langchain_core.runnables import RunnableParallel, RunnablePassthrough, Runn
 
 # Load .env token
 load_dotenv()
+log = CustomLogger("main_py.log")
 token = os.getenv("HUGGINGFACEHUB_ACCESS_TOKEN")
 
 # Initialize Hugging Face Inference Client
@@ -23,8 +24,6 @@ client = InferenceClient(
     token=token,
 )
 
-# Setup logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Streamlit page
 st.set_page_config(page_title="AskTube", layout="centered")
@@ -47,18 +46,20 @@ selected_language_code = language[1]
 try:
     transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=[selected_language_code])
     transcript = " ".join(chunk["text"] for chunk in transcript_list)
-    logging.info("Transcript successfully fetched.")
+    log.info("Transcript successfully fetched.")
 except NoTranscriptFound:
     st.error("No transcript found for this video.")
+    log.info("No transcriptions found for this video.")
     st.stop()
 except TranscriptsDisabled:
     st.error("Transcripts are disabled for this video.")
+    log.info("Transcriptions are disabled for this video.")
     st.stop()
 
 # Split transcript into chunks
 splitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=100)
 chunks = splitter.create_documents([transcript])
-logging.info(f"{len(chunks)} chunks created.")
+log.info(f"{len(chunks)} chunks created.")
 
 # Embed and store in vector DB
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
@@ -118,7 +119,7 @@ if st.button("Submit query"):
     else:
         with st.spinner("Thinking..."):
             full_prompt = build_prompt(query)
-            logging.info(f"Final Prompt: {full_prompt}")
+            log.info(f"Final Prompt: {full_prompt}")
             response = chat_with_llm(full_prompt)
             st.markdown("### Answer:")
             st.write(response)
